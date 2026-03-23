@@ -1,0 +1,12 @@
+spring.application.name=EurekaServer
+
+# Server Port (VERY IMPORTANT)
+server.port=8761
+
+
+# Disable Eureka Client behavior (CRITICAL FIX)
+eureka.client.register-with-eureka=false
+eureka.client.fetch-registry=false
+
+# Optional (cleaner logs)
+eureka.server.wait-time-in-ms-when-sync-empty=0
