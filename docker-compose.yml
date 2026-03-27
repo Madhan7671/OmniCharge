@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: omnicharge-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: omnicharge
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: omnicharge-mq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: omnicharge-zipkin
+    ports:
+      - "9411:9411"
+
+  eureka-service:
+    build: ./EurekaServer
+    container_name: eureka-service
+    restart: always
+    ports:
+      - "8761:8761"
+    environment:
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=false
+      - EUREKA_CLIENT_FETCH_REGISTRY=false
+
+  config-service:
+    build: ./ConfigServer
+    container_name: config-service
+    restart: always
+    ports:
+      - "8888:8888"
+    depends_on:
+      - eureka-service
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+
+  user-service:
+    build: ./UserService
+    container_name: user-service
+    restart: always
+    depends_on:
+      - config-service
+      - mysql
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URL=http://config-service:8888
+
+  operator-service:
+    build: ./OperatorService
+    container_name: operator-service
+    restart: always
+    depends_on:
+      - config-service
+      - mysql
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URL=http://config-service:8888
+
+  recharge-service:
+    build: ./RechargeService
+    container_name: recharge-service
+    restart: always
+    depends_on:
+      - config-service
+      - mysql
+      - rabbitmq
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URL=http://config-service:8888
+
+  payment-service:
+    build: ./PaymentService
+    container_name: payment-service
+    restart: always
+    depends_on:
+      - config-service
+      - mysql
+      - rabbitmq
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URL=http://config-service:8888
+
+  notification-service:
+    build: ./NotificationService
+    container_name: notification-service
+    restart: always
+    depends_on:
+      - config-service
+      - mysql
+      - rabbitmq
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URL=http://config-service:8888
+      # Set MAIL_USERNAME and MAIL_PASSWORD in your shell or a .env file before running docker compose up
+      - MAIL_USERNAME=${MAIL_USERNAME:-madhanmaddasani7671@gmail.com}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+
+
+  api-gateway:
+    build: ./Api_Gateway
+    container_name: api-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - config-service
+      - user-service
+      - recharge-service
+      - payment-service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URL=http://config-service:8888
+
+volumes:
+  mysql_data:

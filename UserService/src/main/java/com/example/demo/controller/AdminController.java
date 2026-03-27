@@ -2,11 +2,13 @@ package com.example.demo.controller;
 
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,18 +33,26 @@ public class AdminController {
         return userRepo.findAll();
     }
 
-    // 🔥 2. Delete user
-    @DeleteMapping("/delete-user")
-    public String deleteUser(@RequestParam Long id) {
-        userRepo.deleteById(id);
-        return "User deleted";
+    @DeleteMapping("/delete_user")
+    public String deleteUser(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        
+        userRepo.delete(user);
+        return "User with email " + email + " deleted successfully";
     }
 
-    // 🔥 3. Assign role
-    @PostMapping("/assign-role")
-    public String assignRole(@RequestParam String email,
-                             @RequestParam String role) {
-
+    @PostMapping("/assign_role")
+    public String assignRole(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String role = request.get("role");
+        
+        System.out.println("Assign role endpoint called!");
+        System.out.println("Email: " + email);
+        System.out.println("Role: " + role);
+        
         service.assignRole(email, role);
         return "Role updated";
     }
